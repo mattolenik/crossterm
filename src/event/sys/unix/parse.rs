@@ -790,11 +790,15 @@ fn parse_cb(cb: u8) -> io::Result<(MouseEventKind, KeyModifiers)> {
         (1, true) => MouseEventKind::Drag(MouseButton::Middle),
         (2, true) => MouseEventKind::Drag(MouseButton::Right),
         (3, false) => MouseEventKind::Up(MouseButton::Left),
-        (3, true) | (4, true) | (5, true) => MouseEventKind::Moved,
+        (3, true) | (4, true) | (5, true) | (8, true) | (9, true) => MouseEventKind::Moved,
         (4, false) => MouseEventKind::ScrollUp,
         (5, false) => MouseEventKind::ScrollDown,
         (6, false) => MouseEventKind::ScrollLeft,
         (7, false) => MouseEventKind::ScrollRight,
+        // xterm buttons 8 and 9 (code 128 + n): the "back" and "forward"
+        // buttons on a mouse's side.
+        (8, false) => MouseEventKind::Down(MouseButton::Back),
+        (9, false) => MouseEventKind::Down(MouseButton::Forward),
         // We do not support other buttons.
         _ => return Err(could_not_parse_event_error()),
     };
@@ -1156,6 +1160,38 @@ mod tests {
                 kind: MouseEventKind::Down(MouseButton::Left),
                 column: 0,
                 row: 0,
+                modifiers: KeyModifiers::empty(),
+            })))
+        );
+    }
+
+    #[test]
+    fn test_parse_csi_sgr_mouse_back_forward_buttons() {
+        assert_eq!(
+            parse_event(b"\x1B[<128;20;10M", false).unwrap(),
+            Some(InternalEvent::Event(Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Down(MouseButton::Back),
+                column: 19,
+                row: 9,
+                modifiers: KeyModifiers::empty(),
+            })))
+        );
+        assert_eq!(
+            parse_event(b"\x1B[<129;20;10m", false).unwrap(),
+            Some(InternalEvent::Event(Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Up(MouseButton::Forward),
+                column: 19,
+                row: 9,
+                modifiers: KeyModifiers::empty(),
+            })))
+        );
+        // Dragging with a side button held is reported as motion.
+        assert_eq!(
+            parse_event(b"\x1B[<160;20;10M", false).unwrap(),
+            Some(InternalEvent::Event(Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: 19,
+                row: 9,
                 modifiers: KeyModifiers::empty(),
             })))
         );

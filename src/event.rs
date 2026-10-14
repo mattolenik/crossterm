@@ -892,6 +892,10 @@ pub enum MouseButton {
     Right,
     /// Middle mouse button.
     Middle,
+    /// The "back" side button (xterm button 8).
+    Back,
+    /// The "forward" side button (xterm button 9).
+    Forward,
 }
 
 impl_is_variant! {
@@ -899,6 +903,8 @@ impl_is_variant! {
         Left => is_left,
         Right => is_right,
         Middle => is_middle,
+        Back => is_back,
+        Forward => is_forward,
     }
 }
 
